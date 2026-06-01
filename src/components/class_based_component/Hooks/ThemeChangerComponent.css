@@ -1,0 +1,9 @@
+#theme_toggle_button {
+  font-size: 5vw;
+  font-weight: bold;
+  border: none;
+  padding: 10px;
+  border-radius: 15px;
+  margin-top: 20px;
+  cursor: pointer;
+}
