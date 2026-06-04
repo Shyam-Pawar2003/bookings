@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Modal,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Modal,
 } from 'react-native';
 
 const PASSES = [
@@ -30,7 +30,7 @@ const PASSES = [
   },
 ];
 
-const INITIAL_TIMER = 4 * 60 + 57; // 04:57
+const INITIAL_TIMER = 4 * 60 + 57;
 
 function formatTime(secs: number) {
   const m = Math.floor(secs / 60);
@@ -92,16 +92,13 @@ export default function DailyPassScreen() {
       Alert.alert('Enter valid ID', 'Please fill all 4 digits of your Aadhar Card or PAN Card.');
       return;
     }
-
     if (!selectedPaymentMethod) {
       Alert.alert('Select Payment Method', 'Please select a payment method first.');
       return;
     }
-
     const now = new Date();
     const expiration = new Date(now);
     expiration.setHours(23, 59, 59, 999);
-
     const passCode = `${selected.id.toUpperCase()}-${idNumber}-${Math.random().toString(36).slice(-6).toUpperCase()}`;
     const passData = {
       id: selected.id,
@@ -115,7 +112,6 @@ export default function DailyPassScreen() {
       purchasedAt: now.getTime(),
       expiresAt: expiration.getTime(),
     };
-
     try {
       await AsyncStorage.setItem('DAILY_PASS', JSON.stringify(passData));
       router.push('/view-pass');
@@ -143,7 +139,9 @@ export default function DailyPassScreen() {
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Daily Pass</Text>
-        <Text style={styles.timerText}>{formatTime(timer)}</Text>
+        <View style={styles.timerBadge}>
+          <Text style={styles.timerText}>{formatTime(timer)}</Text>
+        </View>
       </View>
 
       <ScrollView
@@ -155,41 +153,51 @@ export default function DailyPassScreen() {
         <View style={styles.card}>
           {/* Green date header */}
           <View style={styles.cardGreenHeader}>
-            <Text style={styles.cardGreenHeaderText}>{getFormattedDate()}</Text>
+            <View style={styles.cardGreenHeaderInner}>
+              <View style={styles.dateDot} />
+              <Text style={styles.cardGreenHeaderText}>{getFormattedDate()}</Text>
+            </View>
           </View>
 
           <View style={styles.cardBody}>
             <Text style={styles.sectionLabel}>Select pass type</Text>
 
-            {PASSES.map(pass => (
-              <TouchableOpacity
-                key={pass.id}
-                style={[
-                  styles.passOption,
-                  selectedPass === pass.id
-                    ? styles.passOptionSelected
-                    : styles.passOptionUnselected,
-                ]}
-                onPress={() => setSelectedPass(pass.id)}
-                activeOpacity={0.8}
-              >
-                <Text
+            <View style={styles.passOptionsRow}>
+              {PASSES.map(pass => (
+                <TouchableOpacity
+                  key={pass.id}
                   style={[
-                    styles.passOptionText,
-                    selectedPass === pass.id && styles.passOptionTextSelected,
+                    styles.passOption,
+                    selectedPass === pass.id
+                      ? styles.passOptionSelected
+                      : styles.passOptionUnselected,
                   ]}
+                  onPress={() => setSelectedPass(pass.id)}
+                  activeOpacity={0.8}
                 >
-                  {pass.label} - {pass.price}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.passOptionText,
+                      selectedPass === pass.id && styles.passOptionTextSelected,
+                    ]}
+                  >
+                    {pass.label} - {pass.price}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             <View style={styles.infoBox}>
+              <Text style={styles.infoIcon}>ℹ</Text>
               <Text style={styles.infoBoxText}>{selected.info}</Text>
             </View>
 
-            {/* Dashed divider */}
-            <View style={styles.dashedDivider} />
+            {/* Ticket tear divider */}
+            <View style={styles.tearDividerRow}>
+              <View style={styles.tearCircleLeft} />
+              <View style={styles.dashedDivider} />
+              <View style={styles.tearCircleRight} />
+            </View>
 
             {/* Aadhar / PAN */}
             <Text style={styles.idLabel}>
@@ -200,10 +208,8 @@ export default function DailyPassScreen() {
               {digits.map((d, i) => (
                 <TextInput
                   key={i}
-                  ref={(ref) => {
-                    inputRefs.current[i] = ref;
-                  }}
-                  style={styles.digitBox}
+                  ref={(ref) => { inputRefs.current[i] = ref; }}
+                  style={[styles.digitBox, d ? styles.digitBoxFilled : null]}
                   value={d}
                   onChangeText={val => handleDigitChange(val, i)}
                   onKeyPress={({ nativeEvent }) =>
@@ -218,6 +224,7 @@ export default function DailyPassScreen() {
             </View>
 
             <View style={styles.warnBox}>
+              <Text style={styles.warnIcon}>⚠</Text>
               <Text style={styles.warnText}>
                 You should have a valid ID with above details.
               </Text>
@@ -233,9 +240,11 @@ export default function DailyPassScreen() {
               <Text style={styles.infoIconText}>i</Text>
             </View>
           </View>
-          <Text style={styles.fareAmount}>
-            ₹{selected.fare.toFixed(2)}
-          </Text>
+          <View style={styles.fareAmountRow}>
+            <Text style={styles.fareAmount}>
+              ₹{selected.fare.toFixed(2)}
+            </Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -250,13 +259,12 @@ export default function DailyPassScreen() {
             <Text style={styles.gpayText}>Google Pay</Text>
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
-          
-          {selectedPaymentMethod && (
+          {selectedPaymentMethod ? (
             <View style={styles.selectedMethodContainer}>
               <Text style={styles.selectedMethodLabel}>Selected: </Text>
               <Text style={styles.selectedMethodValue}>{selectedPaymentMethod}</Text>
             </View>
-          )}
+          ) : null}
         </View>
 
         <TouchableOpacity style={styles.payBtn} activeOpacity={0.85} onPress={handlePayPress}>
@@ -273,82 +281,36 @@ export default function DailyPassScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Payment Method</Text>
-              <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
+              <TouchableOpacity onPress={() => setShowPaymentModal(false)} style={styles.modalCloseBtn}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity 
-              style={styles.paymentOption}
-              onPress={() => handlePaymentOptionSelect('Google Pay')}
-            >
-              <View style={[styles.paymentLogo, { backgroundColor: '#4285F4' }]}>
-                <Text style={styles.paymentLogoText}>G</Text>
-              </View>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentName}>Google Pay</Text>
-                <Text style={styles.paymentDescription}>UPI, Credit/Debit Cards</Text>
-              </View>
-              <Text style={styles.paymentArrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.paymentOption}
-              onPress={() => handlePaymentOptionSelect('PhonePe')}
-            >
-              <View style={[styles.paymentLogo, { backgroundColor: '#5F2D96' }]}>
-                <Text style={styles.paymentLogoText}>₱</Text>
-              </View>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentName}>PhonePe</Text>
-                <Text style={styles.paymentDescription}>UPI, Mobile Recharge</Text>
-              </View>
-              <Text style={styles.paymentArrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.paymentOption}
-              onPress={() => handlePaymentOptionSelect('Paytm')}
-            >
-              <View style={[styles.paymentLogo, { backgroundColor: '#00BAF2' }]}>
-                <Text style={styles.paymentLogoText}>P</Text>
-              </View>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentName}>Paytm</Text>
-                <Text style={styles.paymentDescription}>UPI, Wallet, Cards</Text>
-              </View>
-              <Text style={styles.paymentArrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.paymentOption}
-              onPress={() => handlePaymentOptionSelect('Amazon Pay')}
-            >
-              <View style={[styles.paymentLogo, { backgroundColor: '#FF9900' }]}>
-                <Text style={styles.paymentLogoText}>A</Text>
-              </View>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentName}>Amazon Pay</Text>
-                <Text style={styles.paymentDescription}>UPI, Amazon Balance</Text>
-              </View>
-              <Text style={styles.paymentArrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.paymentOption}
-              onPress={() => handlePaymentOptionSelect('BHIM UPI')}
-            >
-              <View style={[styles.paymentLogo, { backgroundColor: '#674EA7' }]}>
-                <Text style={styles.paymentLogoText}>B</Text>
-              </View>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentName}>BHIM UPI</Text>
-                <Text style={styles.paymentDescription}>Direct UPI Payment</Text>
-              </View>
-              <Text style={styles.paymentArrow}>›</Text>
-            </TouchableOpacity>
+            {[
+              { method: 'Google Pay', color: '#4285F4', letter: 'G', desc: 'UPI, Credit/Debit Cards' },
+              { method: 'PhonePe', color: '#5F2D96', letter: '₱', desc: 'UPI, Mobile Recharge' },
+              { method: 'Paytm', color: '#00BAF2', letter: 'P', desc: 'UPI, Wallet, Cards' },
+              { method: 'Amazon Pay', color: '#FF9900', letter: 'A', desc: 'UPI, Amazon Balance' },
+              { method: 'BHIM UPI', color: '#674EA7', letter: 'B', desc: 'Direct UPI Payment' },
+            ].map(({ method, color, letter, desc }) => (
+              <TouchableOpacity
+                key={method}
+                style={styles.paymentOption}
+                onPress={() => handlePaymentOptionSelect(method)}
+              >
+                <View style={[styles.paymentLogo, { backgroundColor: color }]}>
+                  <Text style={styles.paymentLogoText}>{letter}</Text>
+                </View>
+                <View style={styles.paymentInfo}>
+                  <Text style={styles.paymentName}>{method}</Text>
+                  <Text style={styles.paymentDescription}>{desc}</Text>
+                </View>
+                <Text style={styles.paymentArrow}>›</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
       </Modal>
@@ -356,17 +318,20 @@ export default function DailyPassScreen() {
   );
 }
 
-const GREEN = '#2E9B5E';
-const GREEN_DARK = '#237A4A';
-const ORANGE = '#C06A00';
-const ORANGE_BG = '#FFF8EE';
-const BG = '#F0F0F0';
+/* ── Design Tokens ── */
+const GREEN = '#1E8A52';
+const GREEN_LIGHT = '#E8F7EF';
+const GREEN_TEXT = '#145E38';
+const GREEN_HEADER = '#1A7A48';
+const ORANGE = '#B85C00';
+const ORANGE_BG = '#FFF4E6';
+const ORANGE_BORDER = '#FFD9A8';
+const BG = '#F2F4F7';
 const WHITE = '#FFFFFF';
-const TEXT = '#1A1A1A';
-const MUTED = '#666666';
-const BORDER = '#DEDEDE';
-const GREEN_LIGHT = '#D4F0E3';
-const GREEN_TEXT = '#1A6B3E';
+const TEXT = '#111827';
+const MUTED = '#6B7280';
+const BORDER = '#E5E7EB';
+const DIGIT_ACTIVE = '#1E8A52';
 
 const styles = StyleSheet.create({
   safe: {
@@ -381,81 +346,129 @@ const styles = StyleSheet.create({
     backgroundColor: WHITE,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: 1,
     borderBottomColor: BORDER,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   backBtn: {
-    paddingRight: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: BG,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   backArrow: {
-    fontSize: 22,
+    fontSize: 20,
     color: TEXT,
-    lineHeight: 26,
+    lineHeight: 22,
   },
   headerTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: TEXT,
+    letterSpacing: -0.3,
+  },
+  timerBadge: {
+    backgroundColor: GREEN_LIGHT,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#A8DBBE',
   },
   timerText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: TEXT,
+    fontSize: 13,
+    fontWeight: '700',
+    color: GREEN_TEXT,
+    letterSpacing: 0.5,
   },
 
   /* ── Scroll ── */
   scrollContent: {
-    padding: 12,
-    paddingBottom: 110,
-    gap: 10,
+    padding: 14,
+    paddingBottom: 120,
+    gap: 12,
   },
 
   /* ── Card ── */
   card: {
     backgroundColor: WHITE,
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: 'hidden',
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: BORDER,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   cardGreenHeader: {
     backgroundColor: GREEN,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+  cardGreenHeaderInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dateDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.6)',
   },
   cardGreenHeaderText: {
     color: WHITE,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   cardBody: {
-    padding: 15,
-    gap: 10,
+    padding: 16,
+    gap: 11,
   },
   sectionLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: MUTED,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
 
   /* ── Pass Options ── */
+  passOptionsRow: {
+    gap: 10,
+  },
   passOption: {
-    paddingVertical: 11,
-    paddingHorizontal: 13,
-    borderRadius: 8,
-    borderWidth: 1.5,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   passOptionSelected: {
-    backgroundColor: GREEN_LIGHT,
-    borderColor: GREEN,
+    backgroundColor: '#E7F4EA',
+    borderColor: '#B7DDC0',
   },
   passOptionUnselected: {
     backgroundColor: WHITE,
     borderColor: BORDER,
   },
   passOptionText: {
+    flex: 1,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '700',
     color: TEXT,
   },
   passOptionTextSelected: {
@@ -465,69 +478,129 @@ const styles = StyleSheet.create({
   /* ── Info Box ── */
   infoBox: {
     backgroundColor: ORANGE_BG,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 7,
+    borderWidth: 1,
+    borderColor: ORANGE_BORDER,
+  },
+  infoIcon: {
+    fontSize: 13,
+    color: ORANGE,
+    marginTop: 1,
   },
   infoBoxText: {
+    flex: 1,
     fontSize: 13,
-    color: '#7A5C1E',
+    color: ORANGE,
+    fontWeight: '500',
+    lineHeight: 18,
   },
 
-  /* ── Dashed Divider ── */
+  /* ── Tear Divider ── */
+  tearDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: -16,
+  },
+  tearCircleLeft: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginLeft: -9,
+  },
+  tearCircleRight: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginRight: -9,
+  },
   dashedDivider: {
+    flex: 1,
     borderTopWidth: 1.5,
-    borderTopColor: '#CCCCCC',
+    borderTopColor: '#D1D5DB',
     borderStyle: 'dashed',
-    marginVertical: 2,
   },
 
   /* ── ID Input ── */
   idLabel: {
     fontSize: 14,
     color: TEXT,
-    lineHeight: 21,
+    lineHeight: 22,
+    fontWeight: '500',
+    marginTop: 2,
   },
   digitRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 10,
-    marginTop: 4,
+    gap: 12,
+    marginTop: 12,
   },
   digitBox: {
-    width: 54,
-    height: 52,
+    width: 55,
+    height: 55,
     borderWidth: 1.5,
     borderColor: BORDER,
-    borderRadius: 8,
+    borderRadius: 16,
     backgroundColor: WHITE,
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: TEXT,
+  },
+  digitBoxFilled: {
+    borderColor: GREEN,
+    backgroundColor: WHITE,
     color: TEXT,
   },
   warnBox: {
     backgroundColor: ORANGE_BG,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 7,
+    borderWidth: 1,
+    borderColor: ORANGE_BORDER,
+  },
+  warnIcon: {
+    fontSize: 13,
+    color: ORANGE,
+    marginTop: 1,
   },
   warnText: {
+    flex: 1,
     fontSize: 13,
     color: ORANGE,
     fontWeight: '500',
+    lineHeight: 18,
   },
 
   /* ── Fare Card ── */
   fareCard: {
     backgroundColor: WHITE,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 18,
-    paddingVertical: 15,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: BORDER,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   fareLabelRow: {
     flexDirection: 'row',
@@ -536,8 +609,9 @@ const styles = StyleSheet.create({
   },
   fareLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: TEXT,
+    letterSpacing: -0.2,
   },
   infoIconCircle: {
     width: 18,
@@ -549,15 +623,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   infoIconText: {
-    fontSize: 11,
+    fontSize: 10,
     color: MUTED,
     fontStyle: 'italic',
     fontWeight: '700',
   },
+  fareAmountRow: {
+    alignItems: 'flex-end',
+  },
   fareAmount: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: GREEN,
+    letterSpacing: -0.5,
   },
 
   /* ── Bottom Bar ── */
@@ -567,64 +645,69 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: WHITE,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 22,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    borderTopWidth: 0.5,
+    gap: 12,
+    borderTopWidth: 1,
     borderTopColor: BORDER,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 10,
   },
   payUsing: {
-    gap: 8,
-    minWidth: 120,
+    gap: 6,
     flex: 1,
   },
   payUsingLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: MUTED,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   gpayButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    backgroundColor: BG,
+    paddingVertical: 9,
+    paddingHorizontal: 11,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8ECF0',
+    borderColor: BORDER,
     gap: 8,
   },
   gpayLogoContainer: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: '#4285F4',
     alignItems: 'center',
     justifyContent: 'center',
   },
   gpayLogo: {
     color: WHITE,
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '800',
   },
   gpayText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: TEXT,
     flex: 1,
   },
   chevron: {
     fontSize: 18,
-    color: '#8E8E93',
+    color: MUTED,
   },
   selectedMethodContainer: {
-    marginTop: 4,
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 2,
   },
   selectedMethodLabel: {
     fontSize: 10,
@@ -632,64 +715,90 @@ const styles = StyleSheet.create({
   },
   selectedMethodValue: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
     color: GREEN,
   },
   payBtn: {
     backgroundColor: GREEN,
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 120,
+    minWidth: 130,
+    shadowColor: GREEN,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 5,
   },
   payBtnText: {
     color: WHITE,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
 
-  /* ── Modal Styles ── */
+  /* ── Modal ── */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: WHITE,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     maxHeight: '80%',
+    paddingTop: 8,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: BORDER,
+    alignSelf: 'center',
+    marginBottom: 8,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: TEXT,
+    letterSpacing: -0.2,
+  },
+  modalCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: BG,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalClose: {
-    fontSize: 20,
+    fontSize: 14,
     color: MUTED,
-    padding: 4,
+    fontWeight: '600',
   },
   paymentOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
   paymentLogo: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -697,13 +806,13 @@ const styles = StyleSheet.create({
   paymentLogoText: {
     color: WHITE,
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   paymentInfo: {
     flex: 1,
   },
   paymentName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: TEXT,
     marginBottom: 2,
@@ -713,7 +822,7 @@ const styles = StyleSheet.create({
     color: MUTED,
   },
   paymentArrow: {
-    fontSize: 20,
-    color: '#C7C7CC',
+    fontSize: 22,
+    color: '#D1D5DB',
   },
 });

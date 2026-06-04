@@ -222,6 +222,13 @@ export default function TicketDetails() {
             </TouchableOpacity>
           </View>
 
+          {/* Notch + dashed separator */}
+          <View style={styles.notchRow}>
+            <View style={styles.notchLeft} />
+            <View style={styles.dashedLine} />
+            <View style={styles.notchRight} />
+          </View>
+
           <View style={styles.stopsContainer}>
             <TouchableOpacity 
               style={styles.stopRow}
@@ -274,7 +281,9 @@ export default function TicketDetails() {
                 >
                   <Text style={styles.counterBtnText}>−</Text>
                 </TouchableOpacity>
-                <Text style={styles.counterValue}>{fullTickets}</Text>
+                <View style={styles.counterValueContainer}>
+                  <Text style={styles.counterValue}>{fullTickets}</Text>
+                </View>
                 <TouchableOpacity
                   style={styles.counterBtn}
                   onPress={() => setFullTickets(fullTickets + 1)}
@@ -293,7 +302,9 @@ export default function TicketDetails() {
                 >
                   <Text style={styles.counterBtnText}>−</Text>
                 </TouchableOpacity>
-                <Text style={styles.counterValue}>{halfTickets}</Text>
+                <View style={styles.counterValueContainer}>
+                  <Text style={styles.counterValue}>{halfTickets}</Text>
+                </View>
                 <TouchableOpacity
                   style={styles.counterBtn}
                   onPress={() => setHalfTickets(halfTickets + 1)}
@@ -320,7 +331,11 @@ export default function TicketDetails() {
           <Text style={styles.payLabel}>PAY USING ▲</Text>
           <Text style={styles.payMethod}>PhonePe</Text>
         </View>
-        <TouchableOpacity style={styles.payButton} activeOpacity={0.85}>
+        <TouchableOpacity 
+          style={styles.payButton} 
+          activeOpacity={0.85}
+          onPress={() => router.push('/view-ticket')}
+        >
           <Text style={styles.payButtonText}>Pay ₹{calculateTotalFare().toFixed(2)}</Text>
         </TouchableOpacity>
       </View>
@@ -465,10 +480,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E6EBF0',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)',
     elevation: 4,
   },
   banner: {
@@ -630,6 +642,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1B1B1B',
   },
+  counterValueContainer: {
+    width: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   footer: {
     position: 'absolute',
     left: 0,
@@ -740,5 +757,33 @@ const styles = StyleSheet.create({
   stopItemText: {
     fontSize: 14,
     color: '#1B1B1B',
+  },
+  // Notch styles
+  notchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  notchLeft: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#F1F5F8',
+    marginLeft: -11,
+    zIndex: 2,
+  },
+  notchRight: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#F1F5F8',
+    marginRight: -11,
+    zIndex: 2,
+  },
+  dashedLine: {
+    flex: 1,
+    borderTopWidth: 1.5,
+    borderTopColor: '#D0D0D0',
+    borderStyle: 'dashed',
   },
 });

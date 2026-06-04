@@ -30,11 +30,11 @@ export function Header({ title, subtitle, initials = 'PP' }: HeaderProps) {
 
       <View style={styles.rightIcons}>
         <Pressable accessibilityRole="button" style={styles.iconButton}>
-          <Text style={styles.bellIcon}>Bell</Text>
+          <Text style={styles.bellIcon}>🔔</Text>
         </Pressable>
 
         <Pressable accessibilityRole="button" style={styles.userButton}>
-          <Text style={styles.userIcon}>{initials}</Text>
+          <Text style={styles.userIcon}>👤</Text>
         </Pressable>
       </View>
     </View>
@@ -70,8 +70,8 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 999,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderWidth: 1.5,
+    borderColor: '#CCCCCC',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',

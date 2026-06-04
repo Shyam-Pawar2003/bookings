@@ -1,3 +1,7 @@
+export default function DownloadRoute() {
+  return null;
+}
+
 export async function GET() {
   const projectApi = {
     project: 'booking',

@@ -9,9 +9,9 @@ type ShareCardProps = {
 };
 
 export function ShareCard({
-  title = 'Enjoying the PMPML app?',
-  description = 'Share it with your friends and help them ride smarter.',
-  buttonLabel = 'Share now',
+  title = 'Apli PMPML चा आनंद घेत आहात?',
+  description = 'तुमच्या मित्रांसोबत शेअर करा आणि त्यांना स्मार्ट प्रवासात मदत करा.',
+  buttonLabel = 'आता शेअर करा',
 }: ShareCardProps) {
   return (
     <View style={styles.card}>
@@ -38,7 +38,7 @@ export default ShareCard;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FCE4EC',
     borderRadius: 16,
     padding: 20,
     marginTop: 40,
@@ -56,15 +56,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 24,
-    lineHeight: 34,
+    fontSize: 20,
+    lineHeight: 26,
     fontWeight: '600',
-    color: '#000000',
+    color: '#222222',
   },
   description: {
     marginTop: 12,
-    fontSize: 18,
-    color: '#000000',
+    fontSize: 15,
+    color: '#222222',
   },
   button: {
     alignSelf: 'flex-start',

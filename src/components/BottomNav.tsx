@@ -46,15 +46,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   icon: {
-    fontSize: 28,
-    color: '#8A8A8A',
+    fontSize: 24,
+    color: '#888888',
   },
   activeIcon: {
     color: '#111111',
   },
   label: {
-    fontSize: 14,
-    color: '#8A8A8A',
+    fontSize: 11,
+    color: '#888888',
   },
   activeLabel: {
     color: '#111111',

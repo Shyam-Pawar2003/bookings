@@ -12,7 +12,7 @@ import { Spacing } from '@/constants/theme';
 
 type AppRoute = '/ticket-details' | '/daily-pass' | '/view-pass' | '/view-ticket';
 
-type AppCard = {
+type AppCard = { 
   label: string;
   icon: string;
   route?: AppRoute;

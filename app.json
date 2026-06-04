@@ -4,11 +4,11 @@
     "slug": "booking",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/pmpml.jpg",
     "scheme": "booking",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/pmpml.jpg",
       "bundleIdentifier": "com.pmpml.booking",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -17,16 +17,14 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/pmpml.jpg"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.pmpml.booking"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/pmpml.jpg"
     },
     "plugins": [
       "expo-router",
@@ -48,8 +46,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "46279e12-9b9a-4054-922c-5bdb9cc0f150"
+        "projectId": "f42661ae-5cfb-4073-ba06-ea0478989731"
       }
-    }
+    },
+    "owner": "pawr"
   }
 }

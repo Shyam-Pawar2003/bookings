@@ -15,28 +15,23 @@ export function SearchBar() {
 
 const styles = StyleSheet.create({
   shell: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    padding: 0,
   },
   row: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#EBEBEB',
     borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
   text: {
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 15,
+    lineHeight: 20,
     fontWeight: '500',
-    color: '#000000',
+    color: '#888888',
   },
 });

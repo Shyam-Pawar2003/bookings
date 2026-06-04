@@ -38,14 +38,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 30,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#000000',
+    color: '#111111',
   },
   showAll: {
-    fontSize: 16,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111111',
     textDecorationLine: 'underline',
-    color: '#000000',
   },
   card: {
     backgroundColor: '#E5E7EB',
@@ -72,9 +73,9 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   moreText: {
-    marginTop: 40,
+    marginTop: 18,
     textAlign: 'center',
-    fontSize: 24,
-    color: '#000000',
+    fontSize: 14,
+    color: '#555555',
   },
 });

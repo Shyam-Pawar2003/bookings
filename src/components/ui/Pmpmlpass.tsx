@@ -106,28 +106,28 @@ export default function PmpmlTicket() {
   }, [pass]);
 
   useEffect(() => {
-    const zoomPulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoScale, {
-          toValue: 1.06,
-          duration: 450,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoScale, {
-          toValue: 1,
-          duration: 450,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.delay(50),
-      ])
-    );
+  const breathingAnimation = Animated.loop(
+    Animated.sequence([
+      Animated.timing(logoScale, {
+        toValue: 1.12,
+        duration: 1000,
+        easing: Easing.inOut(Easing.sin),
+        useNativeDriver: true,
+      }),
 
-    zoomPulse.start();
+      Animated.timing(logoScale, {
+        toValue: 0.7,
+        duration: 1000,
+        easing: Easing.inOut(Easing.sin),
+        useNativeDriver: true,
+      }),
+    ])
+  );
 
-    return () => zoomPulse.stop();
-  }, [logoScale]);
+  breathingAnimation.start();
+
+  return () => breathingAnimation.stop();
+}, []);
 
   const isExpired = pass ? remainingSeconds <= 0 : false;
   const hasPass = !!pass;
@@ -228,19 +228,21 @@ export default function PmpmlTicket() {
                   <Text style={styles.passBannerText}>{isExpired ? 'EXPIRED' : 'One Day Pass'}</Text>
                 </View>
 
-                {/* PMPML image only with heartbeat animation */}
-                <Animated.Image
-                  source={require('../../../assets/images/pmpml.jpg')}
-                  style={[styles.logoImageOnly, { transform: [{ scale: logoScale }] }]}
-                  resizeMode="contain"
-                />
+                {/* PMPML Logo Circle */}
+                <Animated.View style={[styles.logoCircle, { transform: [{ scale: logoScale }] }]}>
+                  <Image
+                    source={require('../../../assets/images/pmpml.jpg')}
+                    style={styles.logoImage}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
+              </View>
 
-                <View style={styles.expiresRow}>
-                  <Text style={styles.expiresText}>
-                    Expires in{' '}
-                    <Text style={styles.expiresValue}>{formatTime(remainingSeconds)}</Text>
-                  </Text>
-                </View>
+              <View style={styles.expiresRow}>
+                <Text style={styles.expiresText}>
+                  Expires in{' '}
+                  <Text style={styles.expiresValue}>{formatTime(remainingSeconds)}</Text>
+                </Text>
               </View>
             </View>
 
@@ -438,22 +440,24 @@ infoLabel: {
 
   ticketBodyBottom: {
     backgroundColor: WHITE,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
     paddingHorizontal: 18,
     paddingTop: 18,
-    paddingBottom: 22,
+    paddingBottom: 0,
   },
   timeRow: {
-    flexDirection: 'row',
-    marginBottom: 12,
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  marginBottom: 12,
   },
+
   timeCard: {
     flex: 1,
   },
+
   timeCardSpacing: {
-    marginRight: 14,
-  },
+    marginRight: 20,
+},
   timeLabel: {
     fontFamily: FONT_FAMILY,
     fontSize: 14,
@@ -480,11 +484,12 @@ infoLabel: {
   },
   passBanner: {
     backgroundColor: '#E31C0D',
-    height: 29,
+    minHeight: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 2,
     marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 15,
     marginHorizontal: -18,
     alignSelf: 'stretch',
     borderRadius: 0,
@@ -493,8 +498,8 @@ infoLabel: {
   passBannerText: {
     fontFamily: FONT_FAMILY,
     color: WHITE,
-    fontSize: 23,
-    fontWeight: '500',
+    fontSize: 16  ,
+    fontWeight: '400',
     textAlign: 'center',
   },
   passBannerExpired: {
@@ -502,29 +507,26 @@ infoLabel: {
   },
 
   logoCircle: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    borderWidth: 1.5,
-    borderColor: '#DADADA',
-    backgroundColor: WHITE,
-    alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    overflow: 'hidden',
-  },
+  width: 200,
+  height: 200,
+  borderRadius: 100,
+  backgroundColor: WHITE,
+  alignSelf: 'center',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 2,
+  zIndex: 2,
+},
   logoOuterRing: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    right: 4,
-    bottom: 4,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: '#999',
-    borderStyle: 'dashed',
-  },
+  position: 'absolute',
+  width: 220,
+  height: 220,
+  borderRadius: 110,
+  borderWidth: 1,
+  borderColor: '#999',
+  borderStyle: 'dashed',
+  zIndex: 1,
+},
   logoMarathiTop: {
     fontSize: 8,
     color: '#444444',
@@ -584,31 +586,36 @@ infoLabel: {
     letterSpacing: 0.2,
   },
   logoImage: {
-    width: '80%',
-    height: '80%',
-  },
-  logoImageOnly: {
-    width: 140,
-    height: 140,
-    alignSelf: 'center',
-    marginBottom: 14,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: WHITE,
   },
 
   expiresRow: {
+    marginHorizontal: 0,
+    height: 23,
+    paddingHorizontal: 18,
+    backgroundColor: '#EDEDED',
     alignItems: 'center',
-    marginTop: 6,
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
   },
   expiresText: {
     fontFamily: FONT_FAMILY,
     fontSize: 16,
-    color: '#212121',
-    backgroundColor: '#F2F4F7',
+    color: '#6B7280',
+    backgroundColor: 'transparent',
     fontWeight: '500',
+    textAlign: 'center',
   },
   expiresValue: {
     fontFamily: FONT_FAMILY,
     fontWeight: '700',
-    color: TEXT,
+    color: '#6B7280',
   },
 
   qrButton: {
