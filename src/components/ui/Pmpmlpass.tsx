@@ -3,6 +3,8 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Easing,
+  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -33,7 +35,7 @@ function formatTime(secs: number) {
 }
 
 function formatDateTime(date: Date) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const day = date.getDate();
   const month = months[date.getMonth()];
   const year = String(date.getFullYear() % 100).padStart(2, '0');
@@ -42,6 +44,26 @@ function formatDateTime(date: Date) {
   const ampm = hours >= 12 ? 'PM' : 'AM';
   const hour12 = hours % 12 || 12;
   return `${day} ${month}, ${year} | ${hour12}:${minutes} ${ampm}`;
+}
+
+function generatePassCode() {
+  const now = new Date();
+  const datePart = [
+    String(now.getFullYear()).slice(-2),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+  ].join('');
+
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let randomPart = '';
+
+  for (let index = 0; index < 6; index += 1) {
+    randomPart += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+
+  return `${datePart}${randomPart}`;
 }
 
 export default function PmpmlTicket() {
@@ -59,6 +81,10 @@ export default function PmpmlTicket() {
         const stored = await AsyncStorage.getItem(PASS_STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored) as StoredPass;
+          // Generate pass code if not present
+          if (!parsed.passCode || /PMC|-/.test(parsed.passCode)) {
+            parsed.passCode = generatePassCode();
+          }
           setPass(parsed);
           setRemainingSeconds(Math.max(0, Math.floor((parsed.expiresAt - Date.now()) / 1000)));
         }
@@ -68,37 +94,39 @@ export default function PmpmlTicket() {
         setLoading(false);
       }
     }
-
     loadPass();
   }, []);
 
   useEffect(() => {
-    if (!pass) {
-      return;
-    }
-
+    if (!pass) return;
     const interval = setInterval(() => {
       setRemainingSeconds(Math.max(0, Math.floor((pass.expiresAt - Date.now()) / 1000)));
     }, 1000);
-
     return () => clearInterval(interval);
   }, [pass]);
 
   useEffect(() => {
-    Animated.loop(
+    const zoomPulse = Animated.loop(
       Animated.sequence([
         Animated.timing(logoScale, {
-          toValue: 1.05,
-          duration: 800,
+          toValue: 1.06,
+          duration: 450,
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(logoScale, {
           toValue: 1,
-          duration: 800,
+          duration: 450,
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
+        Animated.delay(50),
       ])
-    ).start();
+    );
+
+    zoomPulse.start();
+
+    return () => zoomPulse.stop();
   }, [logoScale]);
 
   const isExpired = pass ? remainingSeconds <= 0 : false;
@@ -108,10 +136,15 @@ export default function PmpmlTicket() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+      {/* Top bar */}
+      <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
           <Text style={styles.closeButtonLabel}>✕</Text>
         </TouchableOpacity>
+        <View style={styles.topBarRight}>
+          <Text style={styles.topBarLink}>Need Help?</Text>
+          <Text style={styles.topBarLink}>All passes</Text>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -132,28 +165,54 @@ export default function PmpmlTicket() {
         ) : (
           <>
             <View style={styles.ticketCard}>
+              {/* Red header */}
               <View style={styles.ticketHeader}>
                 <Text style={styles.ticketHeaderText}>पुणे महानगर परिवहन महामंडळ लि.</Text>
               </View>
 
+              {/* Top info row */}
               <View style={styles.ticketBodyTop}>
                 {[
                   { label: 'Pass Type', value: pass.label },
                   { label: 'ID', value: pass.idNumber },
-                  { label: 'Fare', value: pass.fare },
-                ].map((item) => (
-                  <View key={item.label} style={styles.infoBoxTop}>
-                    <Text style={styles.infoLabel}>{item.label}</Text>
-                    <Text style={styles.infoValue}>{item.value}</Text>
+                  { label: 'Fare', value: `₹${pass.fare.toFixed(2)}` },
+                ].map((item, index) => (
+                  <View
+                    key={item.label}
+                    style={[
+                      styles.infoBoxTop,
+                      index === 1 && styles.infoBoxCenter,
+                      index === 2 && styles.infoBoxRight,
+                    ]}
+                  >
+                   <Text style={styles.infoLabel}>
+  {item.label}
+</Text>
+
+<Text
+  style={[
+    styles.infoValue,
+    item.label === 'Pass Type' && styles.passTypeValue,
+    index === 2 && styles.infoValueRight,
+  ]}
+>
+  {item.value}
+</Text>
                   </View>
                 ))}
               </View>
 
-              <View style={styles.dashedSeparator} />
+              {/* Notch + dashed separator */}
+              <View style={styles.notchRow}>
+                <View style={styles.notchLeft} />
+                <View style={styles.dashedLine} />
+                <View style={styles.notchRight} />
+              </View>
 
+              {/* Bottom section */}
               <View style={styles.ticketBodyBottom}>
                 <View style={styles.timeRow}>
-                  <View style={styles.timeCard}>
+                  <View style={[styles.timeCard, styles.timeCardSpacing]}>
                     <Text style={styles.timeLabel}>Booking Time</Text>
                     <Text style={styles.timeValue}>{bookingLabel}</Text>
                   </View>
@@ -169,38 +228,55 @@ export default function PmpmlTicket() {
                   <Text style={styles.passBannerText}>{isExpired ? 'EXPIRED' : 'One Day Pass'}</Text>
                 </View>
 
+                {/* PMPML image only with heartbeat animation */}
                 <Animated.Image
                   source={require('../../../assets/images/pmpml.jpg')}
-                  style={[styles.ticketLogoImage, { transform: [{ scale: logoScale }] }]}
+                  style={[styles.logoImageOnly, { transform: [{ scale: logoScale }] }]}
                   resizeMode="contain"
                 />
 
                 <View style={styles.expiresRow}>
-                  <Text style={styles.expiresLabel}>Expires in</Text>
-                  <Text style={styles.expiresValue}>{formatTime(remainingSeconds)}</Text>
+                  <Text style={styles.expiresText}>
+                    Expires in{' '}
+                    <Text style={styles.expiresValue}>{formatTime(remainingSeconds)}</Text>
+                  </Text>
                 </View>
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.qrButton}
-              activeOpacity={0.85}
-              onPress={() => setShowQRCode((value) => !value)}
-            >
-              <Text style={styles.qrButtonText}>
-                {showQRCode ? 'Hide QR code' : 'Show QR code'}
-              </Text>
-            </TouchableOpacity>
-
-            {showQRCode && (
-              <View style={styles.qrDisplay}>
-                <View style={styles.qrPlaceholderLarge}>
-                  <Text style={styles.qrLabel}>QR CODE</Text>
-                  <Text style={styles.qrSubLabel}>Present this code for scanning</Text>
+            <View style={styles.qrFooterSection}>
+              <TouchableOpacity
+                style={styles.qrButton}
+                activeOpacity={0.85}
+                onPress={() => setShowQRCode((value) => !value)}
+              >
+                <View style={styles.qrIconContainer}>
+                  <Image
+                    source={require('../../../assets/images/ORCode.png')}
+                    style={styles.qrIconImage}
+                    resizeMode="contain"
+                  />
                 </View>
-                <Text style={styles.qrCodeText}>{pass?.passCode}</Text>
-              </View>
-            )}
+                <Text style={styles.qrButtonText}>
+                  {showQRCode ? 'Hide QR code' : 'Show QR code'}
+                </Text>
+              </TouchableOpacity>
+
+              {showQRCode && (
+                <View style={styles.qrDisplay}>
+                  <View style={styles.qrPlaceholderLarge}>
+                    <Image
+                      source={require('../../../assets/images/ORCode.png')}
+                      style={styles.qrLogoImage}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.qrLabel}>QR CODE</Text>
+                    <Text style={styles.qrSubLabel}>Present this code for scanning</Text>
+                  </View>
+                  <Text style={styles.qrCodeText}>{pass?.passCode}</Text>
+                </View>
+              )}
+            </View>
           </>
         )}
       </ScrollView>
@@ -208,192 +284,379 @@ export default function PmpmlTicket() {
   );
 }
 
+const FONT_FAMILY = 'sans-serif';
+const TEAL     = '#00ACC1';
+const RED      = '#D32F2F';
+const WHITE    = '#FFFFFF';
+const TEXT     = '#1E293B';
+const MUTED    = '#64748B';
+const GRAY_BG  = '#F8FAFC';
+const BORDER   = '#E2E8F0';
+
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#00C4C4',
+    backgroundColor: '#58E0D5',
   },
-  header: {
+
+  topBar: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingTop: 14,
+    justifyContent: 'space-between',
+    paddingTop: 18,
     paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
   },
   closeButtonLabel: {
+    fontFamily: FONT_FAMILY,
     fontSize: 22,
-    color: '#1A1A1A',
+    color: '#212121',
+    fontWeight: '500',
   },
-  content: {
-    paddingBottom: 40,
-  },
-  ticketCard: {
-    marginHorizontal: 16,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
-  },
-  ticketHeader: {
-    backgroundColor: '#D32F2F',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+  topBarRight: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
+  topBarLink: {
+    fontFamily: FONT_FAMILY,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#212121',
+    marginLeft: 18,
+  },
+
+  content: {
+    flexGrow: 1,
+    paddingTop: 10,
+    paddingBottom: 40,
+  },
+
+  ticketCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: '#DADADA',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+
+  ticketHeader: {
+  backgroundColor: '#E21B0C',
+  height: 58,
+  paddingHorizontal: 18,
+  alignItems: 'center',
+  justifyContent: 'center',
+
+  borderTopLeftRadius: 22,
+  borderTopRightRadius: 22,
+},
   ticketHeaderText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  ticketBodyTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    gap: 12,
-  },
+  color: '#FFFFFF',
+  fontSize: 21,
+  fontWeight: '700',
+  fontFamily: 'sans-serif-medium',
+  textAlign: 'center',
+  letterSpacing: 0.2,
+},
+
+ticketBodyTop: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  paddingHorizontal: 18,
+  paddingTop: 16,
+  paddingBottom: 14,
+},
   infoBoxTop: {
     flex: 1,
-    alignItems: 'flex-start',
   },
-  infoLabel: {
-    color: '#888888',
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 6,
+  infoBoxCenter: {
+    alignItems: 'center',
   },
+  infoBoxRight: {
+    alignItems: 'flex-end',
+  },
+infoLabel: {
+  fontSize: 13,
+  color: '#666666',
+  fontFamily: 'sans-serif',
+  marginBottom: 4,
+},
   infoValue: {
-    fontSize: 20,
+  fontFamily: 'sans-serif-medium',
+  fontSize: 20,
+  fontWeight: '800',
+  color: '#212121',
+  lineHeight: 24,
+},
+  passTypeValue: {
+    fontSize: 25,
     fontWeight: '800',
-    color: '#1A1A1A',
   },
-  dashedSeparator: {
-    borderTopWidth: 1,
-    borderTopColor: '#D8D8D8',
+  infoValueRight: {
+    textAlign: 'right',
+  },
+
+  notchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: WHITE,
+  },
+  notchLeft: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#56E0D5',
+    marginLeft: -21,
+    zIndex: 2,
+  },
+  notchRight: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#56E0D5',
+    marginRight: -21,
+    zIndex: 2,
+  },
+  dashedLine: {
+    flex: 1,
+    borderTopWidth: 1.5,
+    borderTopColor: BORDER,
     borderStyle: 'dashed',
-    marginHorizontal: 16,
   },
+
   ticketBodyBottom: {
-    padding: 16,
-    backgroundColor: '#F3F3F3',
+    backgroundColor: WHITE,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 22,
   },
   timeRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   timeCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    minHeight: 78,
+  },
+  timeCardSpacing: {
+    marginRight: 14,
   },
   timeLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    color: '#888888',
-    marginBottom: 8,
+    fontFamily: FONT_FAMILY,
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#666666',
+    marginBottom: 6,
   },
   timeValue: {
-    fontSize: 13,
+    fontFamily: FONT_FAMILY,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A1A',
-    lineHeight: 20,
+    color: '#212121',
+    lineHeight: 22,
   },
   ticketId: {
+    fontFamily: FONT_FAMILY,
     textAlign: 'center',
-    fontSize: 13,
-    color: '#555555',
-    marginVertical: 12,
-    letterSpacing: 0.5,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#212121',
+    marginTop: 16,
+    marginBottom: 12,
+    letterSpacing: 1,
   },
   passBanner: {
-    backgroundColor: '#D32F2F',
-    borderRadius: 12,
-    paddingVertical: 10,
+    backgroundColor: '#E31C0D',
+    height: 29,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    marginHorizontal: -18,
+    alignSelf: 'stretch',
+    borderRadius: 0,
   },
+
   passBannerText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
+    fontFamily: FONT_FAMILY,
+    color: WHITE,
+    fontSize: 23,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   passBannerExpired: {
     backgroundColor: '#888888',
   },
-  ticketLogoImage: {
-    width: '100%',
-    height: 260,
-    marginBottom: 16,
-    borderRadius: 20,
-  },
-  expiresRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+
+  logoCircle: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 1.5,
+    borderColor: '#DADADA',
+    backgroundColor: WHITE,
+    alignSelf: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    justifyContent: 'center',
+    marginBottom: 14,
+    overflow: 'hidden',
   },
-  expiresLabel: {
+  logoOuterRing: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: '#999',
+    borderStyle: 'dashed',
+  },
+  logoMarathiTop: {
+    fontSize: 8,
+    color: '#444444',
+    textAlign: 'center',
+    marginBottom: 3,
+    letterSpacing: 0.2,
+    paddingHorizontal: 10,
+  },
+  arrowRow: {
+    flexDirection: 'row',
+    marginBottom: 2,
+  },
+  arrowLeft: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 14,
+    borderBottomWidth: 14,
+    borderRightWidth: 22,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderRightColor: TEXT,
+  },
+  arrowRight: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 14,
+    borderBottomWidth: 14,
+    borderLeftWidth: 22,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: TEXT,
+  },
+  logoParivahan: {
     fontSize: 12,
-    textTransform: 'uppercase',
-    fontWeight: '700',
-    color: '#888888',
+    color: '#333333',
+    fontWeight: '600',
+    marginBottom: 1,
+  },
+  logoPMPML: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: RED,
+    letterSpacing: 2,
+    marginBottom: 1,
+  },
+  logoSeva: {
+    fontSize: 12,
+    color: '#333333',
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  logoMarathiBot: {
+    fontSize: 8,
+    color: '#444444',
+    textAlign: 'center',
+    paddingHorizontal: 10,
+    letterSpacing: 0.2,
+  },
+  logoImage: {
+    width: '80%',
+    height: '80%',
+  },
+  logoImageOnly: {
+    width: 140,
+    height: 140,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+
+  expiresRow: {
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  expiresText: {
+    fontFamily: FONT_FAMILY,
+    fontSize: 16,
+    color: '#212121',
+    backgroundColor: '#F2F4F7',
+    fontWeight: '500',
   },
   expiresValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1A1A1A',
+    fontFamily: FONT_FAMILY,
+    fontWeight: '700',
+    color: TEXT,
   },
+
   qrButton: {
-    marginHorizontal: 16,
+    marginHorizontal: 12,
     marginTop: 16,
-    borderRadius: 18,
-    backgroundColor: '#E7F6F6',
-    paddingVertical: 16,
+    borderRadius: 6,
+    backgroundColor: WHITE,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#B7E3E2',
+    borderColor: '#DADADA',
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+  },
+  qrIconContainer: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  qrIconImage: {
+    width: 24,
+    height: 24,
   },
   qrButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1A1A1A',
+    fontFamily: FONT_FAMILY,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#212121',
   },
+
+  qrFooterSection: {
+    marginTop: 'auto',
+    paddingTop: 16,
+  },
+
   qrDisplay: {
-    marginHorizontal: 16,
-    marginTop: 14,
+    marginHorizontal: 12,
+    marginTop: 12,
     padding: 18,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: '#D8D8D8',
+    borderColor: BORDER,
     alignItems: 'center',
   },
   qrPlaceholderLarge: {
@@ -407,35 +670,43 @@ const styles = StyleSheet.create({
     borderColor: '#B7E3E2',
     marginBottom: 16,
   },
+  qrLogoImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 10,
+  },
   qrLabel: {
+    fontFamily: FONT_FAMILY,
     fontSize: 18,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: TEXT,
     marginBottom: 8,
   },
   qrSubLabel: {
+    fontFamily: FONT_FAMILY,
     fontSize: 12,
     color: '#555555',
   },
   qrCodeText: {
+    fontFamily: FONT_FAMILY,
     fontSize: 14,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: TEXT,
     letterSpacing: 1,
     textAlign: 'center',
   },
+
   emptyState: {
     margin: 20,
     padding: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: WHITE,
     borderRadius: 18,
     alignItems: 'center',
-    gap: 12,
   },
   emptyTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: TEXT,
   },
   emptyDescription: {
     fontSize: 14,
@@ -451,7 +722,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   emptyButtonText: {
-    color: '#FFFFFF',
+    color: WHITE,
     fontWeight: '700',
     fontSize: 14,
   },
